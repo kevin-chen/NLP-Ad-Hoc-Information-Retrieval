@@ -2,11 +2,10 @@
 # cran.qry is the query
 # cranqrel is the answer key
 
-# Second Step: read from document
-
 import string 
+import numpy as np
 
-def parseQueryLine(splits):
+def parseWordLine(splits, currentQueryFrequency):
     # Invalid: stop words, punctuation, numbers
     closed_class_stop_words = ['a', 'the', 'an', 'and', 'or', 'but', 'about', 'above', 'after', 'along', 'amid', 'among',
                                'as', 'at', 'by', 'for', 'from', 'in', 'into', 'like', 'minus', 'near', 'of', 'off', 'on',
@@ -32,40 +31,82 @@ def parseQueryLine(splits):
                                ]
     invalidChars = string.punctuation
     for word in splits:
-        if word.isnumeric() or word in invalidChars or word in closed_class_stop_words:
-            splits.remove(word)
-    return splits
+        if not(word.isnumeric() or word in invalidChars or word in closed_class_stop_words):
+            currentQueryFrequency[word] = currentQueryFrequency.get(word, 0) + 1
 
-def readFromQuery(queryFile):
-    currentQueryList = []
+def readFromFile(queryFile):
+    currentQueryFrequency = dict()
     accumulatedQueries = []
 
     line = queryFile.readline()
     isReadingQuery = False
-    
+
     while line != None:
         splits = line.strip().split(" ")
         if splits[0] == ".W": # start of new query
             isReadingQuery = True
-        elif (splits[0] == ".I" or splits[0] == "") and len(currentQueryList) != 0:
+        elif (splits[0] == ".I" or splits[0] == "") and len(currentQueryFrequency) != 0:
             isReadingQuery = False
-            accumulatedQueries.append(currentQueryList)
-            currentQueryList = []
+            accumulatedQueries.append(currentQueryFrequency)
+            currentQueryFrequency = dict()
             if splits[0] == "":
                 break
         elif isReadingQuery:
-            # loop through array of strings and return list of valid query words
-            validWords = parseQueryLine(splits)
-            currentQueryList.extend(validWords)
+            parseWordLine(splits, currentQueryFrequency)
         line = queryFile.readline()
     
     return accumulatedQueries
 
+def tfidf(documents):
+    totalDocuments = len(documents)
+    documentFrequency = dict() # number of documents a word appears in
+    for document in documents:
+        for word in document:
+            documentFrequency[word] = documentFrequency.get(word, 0) + 1
+    for document in documents:
+        for word in document:
+            idf = np.log(totalDocuments / documentFrequency[word])
+            document[word] = document[word] / idf
+
+def cosineSimilarity(queryList, abstractList):
+    results = []
+    for i, query in enumerate(queryList):
+        for j, abstract in enumerate(abstractList):
+            score = similarity(query, abstract)
+            results.append((i + 1, j + 1, score))
+    return results
+
+def similarity(query, abstract):
+    queryScores = []
+    abstractScores = []
+    for word in query:
+        queryScore = query[word]
+        queryScores.append(queryScore)
+        abstractScore = abstract.get(word, 0)
+        abstractScores.append(abstractScore)
+    queryArray = np.array(queryScores)
+    abstractArray = np.array(abstractScores)
+    top = np.sum(abstractArray * queryArray)
+    bot = np.sqrt(np.sum(abstractArray * queryArray) * np.sum(queryArray * queryArray))
+    return top / bot if top != 0 or bot != 0 else 0
+
 def main():
     # First Step: read from query file
     queryFile = open("Cranfield_collection_HW/cran.qry")
-    print(len(readFromQuery(queryFile)))
+    queryList = readFromFile(queryFile)
     queryFile.close()
+
+    # Second Step: read from document
+    abstractFile = open("Cranfield_collection_HW/cran.all.1400")
+    abstractList = readFromFile(abstractFile)
+    abstractFile.close()
+
+    # Third Step: calculate TF-IDF score
+    tfidf(queryList)
+    tfidf(abstractList)
+
+    # Fourth Step: calculate cosine similarity between each query and each abstract
+    print(cosineSimilarity(queryList, abstractList))
 
 
 if __name__ == '__main__':
