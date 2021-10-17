@@ -57,28 +57,6 @@ def readFromFile(queryFile):
     
     return accumulatedQueries
 
-def readFromAbstractFile(abstractFile):
-    currentQueryFrequency = dict()
-    accumulatedQueries = []
-
-    text = abstractFile.read()
-
-    while line != None:
-        splits = line.strip().split()
-        if (len(splits) == 0 or splits[0] == ".I") and len(currentQueryFrequency) != 0:
-            isReadingQuery = False
-            accumulatedQueries.append(currentQueryFrequency)
-            currentQueryFrequency = dict()
-            if len(splits) == 0:
-                break
-        elif splits[0] == ".W": # start of new query
-            isReadingQuery = True
-        elif isReadingQuery:
-            parseWordLine(splits, currentQueryFrequency)
-        line = abstractFile.readline()
-    
-    return accumulatedQueries
-
 def tfidf(documents):
     totalDocuments = len(documents)
     documentFrequency = dict() # number of documents a word appears in
@@ -158,13 +136,13 @@ def writeScoreToOutput(similarityScores, file):
 
 def main():
     # First Step: read from query file
-    # queryFile = open("Cranfield_collection_HW/cran.qry", "r")
-    # queryList = readFromFile(queryFile)
-    # queryFile.close()
+    queryFile = open("Cranfield_collection_HW/cran.qry", "r")
+    queryList = readFromFile(queryFile)
+    queryFile.close()
 
     # Second Step: read from document
     abstractFile = open("Cranfield_collection_HW/cran.all.1400", "r")
-    abstractList = readFromAbstractFile(abstractFile)
+    abstractList = readFromFile(abstractFile)
     abstractFile.close()
 
     # print(len(queryList), len(abstractList))
@@ -177,18 +155,18 @@ def main():
     # print(len(queryList))
 
     # print(abstractList)
-    print(len(abstractList))
+    # print(len(abstractList))
 
 
     # Fourth Step: calculate cosine similarity between each query and each abstract
-    # similarityScores = cosineSimilarity(queryList, abstractList)
-    # sortBySimilarity(similarityScores)
+    similarityScores = cosineSimilarity(queryList, abstractList)
+    sortBySimilarity(similarityScores)
     # print(similarityScores)
 
     # Fifth Step: write scores to output file
-    # outputFile = open("output.txt", "w")
-    # writeScoreToOutput(similarityScores, outputFile)
-    # outputFile.close()
+    outputFile = open("output.txt", "w")
+    writeScoreToOutput(similarityScores, outputFile)
+    outputFile.close()
 
 
 if __name__ == '__main__':
