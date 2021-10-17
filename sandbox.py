@@ -42,15 +42,15 @@ def readFromFile(queryFile):
     isReadingQuery = False
 
     while line != None:
-        splits = line.strip().split(" ")
-        if splits[0] == ".W": # start of new query
-            isReadingQuery = True
-        elif (splits[0] == ".I" or splits[0] == "") and len(currentQueryFrequency) != 0:
+        splits = line.strip().split()
+        if (len(splits) == 0 or splits[0] == ".I") and len(currentQueryFrequency) != 0:
             isReadingQuery = False
             accumulatedQueries.append(currentQueryFrequency)
             currentQueryFrequency = dict()
-            if splits[0] == "":
+            if len(splits) == 0:
                 break
+        elif splits[0] == ".W": # start of new query
+            isReadingQuery = True
         elif isReadingQuery:
             parseWordLine(splits, currentQueryFrequency)
         line = queryFile.readline()
@@ -63,20 +63,31 @@ def tfidf(documents):
     for document in documents:
         for word in document:
             documentFrequency[word] = documentFrequency.get(word, 0) + 1
+    count = 0
     for document in documents:
         for word in document:
+            if word == "models":
+                count += 1
             idf = np.log(totalDocuments / documentFrequency[word])
-            document[word] = document[word] / idf
+            document[word] = document[word] * idf
+    # print(count)
 
 def cosineSimilarity(queryList, abstractList):
     results = []
     for i, query in enumerate(queryList):
         for j, abstract in enumerate(abstractList):
-            score = similarity(query, abstract)
-            results.append((i + 1, j + 1, score))
+            
+            
+            if i + 1  == 1 and j + 1 == 304:
+                # print(query, abstract)
+                score = similarity(query, abstract, False)
+                print(score)
+            else:
+                score = similarity(query, abstract, False)
+            results.append([i + 1, j + 1, score])
     return results
 
-def similarity(query, abstract):
+def similarity(query, abstract, bool):
     queryScores = []
     abstractScores = []
     for word in query:
@@ -84,29 +95,78 @@ def similarity(query, abstract):
         queryScores.append(queryScore)
         abstractScore = abstract.get(word, 0)
         abstractScores.append(abstractScore)
+        if bool:
+            print(word, queryScore, abstractScore)
     queryArray = np.array(queryScores)
     abstractArray = np.array(abstractScores)
     top = np.sum(abstractArray * queryArray)
-    bot = np.sqrt(np.sum(abstractArray * queryArray) * np.sum(queryArray * queryArray))
-    return top / bot if top != 0 or bot != 0 else 0
+    bot = np.sqrt(np.sum(abstractArray * abstractArray) * np.sum(queryArray * queryArray))
+    if bool:
+        print(queryArray, abstractArray)
+        print(top, bot)
+    return top / bot if bot != 0 else 0
+
+def sortHelper(start, end, similarityScores):
+    for i in range(start, end):
+        min_idx = i
+        for j in range(i + 1, end):
+            if similarityScores[min_idx][2] > similarityScores[j][2]:
+                min_idx = j
+        similarityScores[i], similarityScores[min_idx] = similarityScores[min_idx], similarityScores[i]
+
+def sortBySimilarity(similarityScores):
+    # while not reached the end 
+    #   find start and end indexes of current section
+    #   sort on this section
+    start = 0
+    while start < len(similarityScores):
+        # find end index of current section
+        for end in range(start, len(similarityScores)):
+            curr = similarityScores[end]
+            if curr[2] != similarityScores[start][2]:
+                break
+        sortHelper(start, end, similarityScores)
+        start = end 
+
+def writeScoreToOutput(similarityScores, file):
+    for (queryID, abstractID, score) in similarityScores:
+        line = "{0} {1} {2}\n".format(queryID, abstractID, score)
+        file.write(line)
+
 
 def main():
     # First Step: read from query file
-    queryFile = open("Cranfield_collection_HW/cran.qry")
+    queryFile = open("Cranfield_collection_HW/cran.qry", "r")
     queryList = readFromFile(queryFile)
     queryFile.close()
 
     # Second Step: read from document
-    abstractFile = open("Cranfield_collection_HW/cran.all.1400")
+    abstractFile = open("Cranfield_collection_HW/cran.all.1400", "r")
     abstractList = readFromFile(abstractFile)
     abstractFile.close()
 
+    # print(len(queryList), len(abstractList))
+
     # Third Step: calculate TF-IDF score
-    tfidf(queryList)
-    tfidf(abstractList)
+    # tfidf(queryList)
+    # tfidf(abstractList)
+
+    # print(queryList)
+    # print(len(queryList))
+
+    # print(abstractList)
+    # print(len(abstractList))
+
 
     # Fourth Step: calculate cosine similarity between each query and each abstract
-    print(cosineSimilarity(queryList, abstractList))
+    similarityScores = cosineSimilarity(queryList, abstractList)
+    sortBySimilarity(similarityScores)
+    # print(similarityScores)
+
+    # Fifth Step: write scores to output file
+    outputFile = open("output.txt", "w")
+    writeScoreToOutput(similarityScores, outputFile)
+    outputFile.close()
 
 
 if __name__ == '__main__':
