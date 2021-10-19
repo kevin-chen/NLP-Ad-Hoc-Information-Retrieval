@@ -143,6 +143,7 @@ def sortBySimilarity(similarityScores):
     #   sort on this section
     start = 0
     while start < len(similarityScores):
+        # print (start, len(similarityScores))
         # find end index of current section
         for end in range(start, len(similarityScores)):
             curr = similarityScores[end]
@@ -150,6 +151,7 @@ def sortBySimilarity(similarityScores):
                 break
         sortHelper(start, end, similarityScores)
         start = end 
+        
 
 def writeScoreToOutput(similarityScores, file):
     for (queryID, abstractID, score) in similarityScores:

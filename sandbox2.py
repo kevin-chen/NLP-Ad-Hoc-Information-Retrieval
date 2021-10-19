@@ -67,6 +67,7 @@ def tfidf(list):
 def cosineSimilarity(queryList, abstractList):
     results = []
     for i, query in enumerate(queryList):
+        currQuery = []
         for j, abstract in enumerate(abstractList):
             if i + 1  == 1 and j + 1 == 304:
                 # print(query, abstract)
@@ -74,7 +75,8 @@ def cosineSimilarity(queryList, abstractList):
                 print(score)
             else:
                 score = similarity(query, abstract, False)
-            results.append([i + 1, j + 1, score])
+            currQuery.append([i + 1, j + 1, score])
+        results.append(currQuery)
     return results
 
 def similarity(query, abstract, bool):
@@ -105,29 +107,53 @@ def sortHelper(start, end, similarityScores):
         similarityScores[i], similarityScores[min_idx] = similarityScores[min_idx], similarityScores[i]
 
 def sortBySimilarity(similarityScores):
-    start = 0
-    while start < len(similarityScores):
-        # find end index of current section
-        for end in range(start, len(similarityScores)):
-            curr = similarityScores[end]
-            if curr[2] != similarityScores[start][2]:
-                break
-        sortHelper(start, end, similarityScores)
-        start = end 
+    # start = 0
+    # while start < len(similarityScores):
+    #     # print (start, len(similarityScores))
+    #     # find end index of current section
+    #     print("start:", start, end = " ")
+    #     for end in range(start + 1, len(similarityScores) + 1):
+    #         print(end, end = " ")
+    #         if end == len(similarityScores):
+    #             break
+    #         curr = similarityScores[end]
+    #         if curr[0] != similarityScores[start][0]:
+    #             break
+    #     print("end: ", end)
+    #     insertionSort(similarityScores, start, end)
+    #     start = end
 
-def insertionSort(arr):
-    for i in range(1, len(arr)): 
+    
+    for query_results in similarityScores:
+        # sort 2d array query_results
+        swapped = True
+        while swapped:
+            swapped = False
+            for i in range(len(query_results) - 1):
+                print(query_results)
+                if query_results[i][2] < query_results[i + 1][2]:
+                    # Swap the elements
+                    query_results[i], query_results[i + 1] = query_results[i + 1], query_results[i]
+                    # Set the flag to True so we'll loop again
+                    swapped = True
+
+# inverse insertion sort
+def insertionSort(arr, start, end):
+    # print("Insertion Sort", start, end)
+    for i in range(start + 1, end): 
         key = arr[i]
         j = i-1
-        while j >= 0 and key[2] < arr[j][2]:
+        while j >= 0 and key[2] > arr[j][2]:
+            print("Comparing:", key, "with:", arr[j])
             arr[j + 1] = arr[j]
             j -= 1
         arr[j + 1] = key
 
 def writeScoreToOutput(similarityScores, file):
-    for (queryID, abstractID, score) in similarityScores:
-        line = "{0} {1} {2}\n".format(queryID, abstractID, score)
-        file.write(line)
+    for query in similarityScores:
+        for (queryID, abstractID, score) in query:
+            line = "{0} {1} {2}\n".format(queryID, abstractID, score)
+            file.write(line)
 
 def main():
     # First Step: read from query file
@@ -136,7 +162,7 @@ def main():
     queryFile.close()
 
     # Second Step: read from document
-    abstractFile = open("Cranfield_collection_HW/cran.all.1400", "r")
+    abstractFile = open("shorter-cran.all.1400", "r")
     abstractList = readFromFile(abstractFile, "abstract")
     abstractFile.close()
 
@@ -152,12 +178,12 @@ def main():
 
     # Fourth Step: calculate cosine similarity between each query and each abstract
     similarityScores = cosineSimilarity(queryList, abstractList)
-    insertionSort(similarityScores)
-    # sortBySimilarity(similarityScores)
-    # print(similarityScores)
+    # insertionSort(similarityScores)
+    sortBySimilarity(similarityScores)
+    print(similarityScores)
 
     # Fifth Step: write scores to output file
-    outputFile = open("output.txt", "w")
+    outputFile = open("output2.txt", "w")
     writeScoreToOutput(similarityScores, outputFile)
     outputFile.close()
 
