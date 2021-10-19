@@ -148,10 +148,10 @@ def main():
     abstractFile.close()
 
     # print(queryList)
-    print(len(queryList))
+    print("Query Len:", len(queryList))
 
     # print(abstractList)
-    print(len(abstractList))
+    print("Abstract Len:", len(abstractList))
 
     # Third Step: calculate TF-IDF score
     tfidf(queryList)

@@ -3,9 +3,9 @@
 #SBATCH --ntasks-per-node=4              # runs 2 tasks on each server
 #SBATCH --cpus-per-task=1                # uses 1 compute core per task
 #SBATCH --time=1:30:00
-#SBATCH --mem=2GB
+#SBATCH --mem=2GBgit
 #SBATCH --job-name=python-hello-world
 #SBATCH --output=python-hello-world.out
 module purge
 module load python/intel/3.8.6
-python3 ./sandbox.py
+python3 ./sandbox2.py
